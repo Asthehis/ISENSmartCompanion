@@ -6,12 +6,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +44,7 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
         // Logo and Title
         Image(
             painter = painterResource(id = R.drawable.logo),
-            contentDescription = "App Logo",
+            contentDescription = stringResource(id = R.string.logo),
             modifier = Modifier.size(160.dp)
         )
         Text(text = "Smart Companion", fontSize = 16.sp)
@@ -64,8 +65,8 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
         // Send Button
         Button(
             onClick = { response = "This is a test response from the assistant." },
-            shape = CircleShape,
-            modifier = Modifier.align(Alignment.End)
+            modifier = Modifier.align(Alignment.End),
+            colors = ButtonDefaults.buttonColors(colorResource(id = R.color.red))
         ) {
             Text("Send")
         }
@@ -76,7 +77,7 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
         Text(
             text = response,
             fontSize = 18.sp,
-            color = MaterialTheme.colorScheme.secondary
+            color = colorResource(id = R.color.grey)
         )
     }
 }
