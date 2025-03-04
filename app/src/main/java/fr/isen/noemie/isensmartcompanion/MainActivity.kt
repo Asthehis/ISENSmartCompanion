@@ -8,6 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.DateRange
@@ -61,8 +63,14 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     NavHost(navController, startDestination = homeTab.title, Modifier.padding(innerPadding)) {
                         composable(homeTab.title) { SmartCompanionUI() }
-                        composable(eventTab.title) { EventView() }
+                        composable(eventTab.title) { EventView(navController) }
                         composable(historyTab.title) { HistoryView() }
+                        composable("eventDetail/{eventId}") { backStackEntry ->
+                            val eventId = backStackEntry.arguments?.getString("eventId")?.toInt()
+                            eventId?.let { id ->
+                                EventDetailScreen(fakeEvents.find { it.id == id } ?: Event(0, "Unknown", "", "", "", ""))
+                            }
+                        }
                     }
                 }
             }
@@ -150,9 +158,7 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
 
 // Event Screen
 @Composable
-fun EventView() {
-    val context = LocalContext.current
-
+fun EventView(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -161,12 +167,12 @@ fun EventView() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
-                context.startActivity(Intent(context, EventDetailActivity::class.java))
+        LazyColumn {
+            items(fakeEvents) { event ->
+                EventItem(event) {
+                    navController.navigate("eventDetail/${event.id}")
+                }
             }
-        ) {
-            Text("View Event Details")
         }
     }
 }
