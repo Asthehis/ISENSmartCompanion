@@ -1,15 +1,13 @@
 package fr.isen.noemie.isensmartcompanion
 
-import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.DateRange
@@ -25,14 +23,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.*
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import fr.isen.noemie.isensmartcompanion.EventDetailActivity
+import fr.isen.noemie.isensmartcompanion.api.EventApiService
+import fr.isen.noemie.isensmartcompanion.repository.EventRepository
 import fr.isen.noemie.isensmartcompanion.ui.theme.ISENSmartCompanionTheme
+import fr.isen.noemie.isensmartcompanion.Event
+import fr.isen.noemie.isensmartcompanion.EventItem
+import fr.isen.noemie.isensmartcompanion.EventListActivity
+import androidx.activity.viewModels
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import fr.isen.noemie.isensmartcompanion.EventViewModel
+import androidx.compose.runtime.collectAsState
+import kotlin.text.toIntOrNull
+
 
 // Define Tab Items
 data class TabBarItem(
@@ -42,7 +57,13 @@ data class TabBarItem(
     val badgeAmount: Int? = null
 )
 
+val oswaldFontFamily = FontFamily(
+    Font(R.font.oswald, FontWeight.Normal)
+)
+
 class MainActivity : ComponentActivity() {
+    private val eventViewModel: EventViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -50,12 +71,28 @@ class MainActivity : ComponentActivity() {
             ISENSmartCompanionTheme {
                 val navController = rememberNavController()
 
-                // Define TabBar Items
-                val homeTab = TabBarItem(title = "Home", selectedIcon = Icons.Filled.Home, unselectedIcon = Icons.Outlined.Home)
-                val eventTab = TabBarItem(title = "Event", selectedIcon = Icons.Filled.DateRange, unselectedIcon = Icons.Outlined.DateRange)
-                val historyTab = TabBarItem(title = "History", selectedIcon = Icons.Filled.Refresh, unselectedIcon = Icons.Outlined.Refresh)
+                // Create the tab items here
+                val homeTab = TabBarItem(
+                    title = "Home",
+                    selectedIcon = Icons.Filled.Home,
+                    unselectedIcon = Icons.Outlined.Home
+                )
+                val eventTab = TabBarItem(
+                    title = "Event",
+                    selectedIcon = Icons.Filled.DateRange,
+                    unselectedIcon = Icons.Outlined.DateRange
+                )
+                val historyTab = TabBarItem(
+                    title = "History",
+                    selectedIcon = Icons.Filled.Refresh,
+                    unselectedIcon = Icons.Outlined.Refresh
+                )
 
                 val tabBarItems = listOf(homeTab, eventTab, historyTab)
+
+                // Observe eventList and isLoading from the ViewModel
+                val eventList by eventViewModel.eventList.collectAsState()
+                val isLoading by eventViewModel.isLoading.collectAsState()
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -63,20 +100,37 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     NavHost(navController, startDestination = homeTab.title, Modifier.padding(innerPadding)) {
                         composable(homeTab.title) { SmartCompanionUI() }
-                        composable(eventTab.title) { EventView(navController) }
+                        composable(eventTab.title) { EventView(eventList, isLoading, navController) }
                         composable(historyTab.title) { HistoryView() }
                         composable("eventDetail/{eventId}") { backStackEntry ->
-                            val eventId = backStackEntry.arguments?.getString("eventId")?.toInt()
-                            eventId?.let { id ->
-                                EventDetailScreen(fakeEvents.find { it.id == id } ?: Event(0, "Unknown", "", "", "", ""))
+                            Log.d("EventDetail", "Raw eventId argument: ${backStackEntry.arguments?.getString("eventId")}")
+                            val eventId = backStackEntry.arguments?.getString("eventId")
+                            Log.d("EventDetail", "eventId récupéré: $eventId")
+
+                            if (eventId == null) {
+                                Log.e("EventDetail", "eventId est null, problème de navigation")
+                                Text("Erreur de chargement")
+                                return@composable
+                            }
+
+                            val selectedEvent = eventList.find { it.id == eventId }
+                            if (selectedEvent != null) {
+                                Log.d("EventDetail", "Événement trouvé: $selectedEvent")
+                                EventDetailScreen(selectedEvent, onBackPress = { navController.popBackStack() })
+                            } else {
+                                Log.e("EventDetail", "Aucun événement trouvé avec l'ID: $eventId")
+                                Text("Événement non trouvé")
                             }
                         }
+
+
                     }
                 }
             }
         }
     }
 }
+
 
 // Reusable Tab View
 @Composable
@@ -115,11 +169,7 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = stringResource(id = R.string.logo),
-            modifier = Modifier.size(160.dp)
-        )
+        Text(text= "ISEN", fontSize = 96.sp, color = colorResource(id = R.color.red), fontFamily = oswaldFontFamily)
         Text(text = "Smart Companion", fontSize = 16.sp)
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -158,25 +208,36 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
 
 // Event Screen
 @Composable
-fun EventView(navController: NavController) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+fun EventView(eventList: List<Event>, isLoading: Boolean, navController: NavController) {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
-        Text(text = "Events", fontSize = 24.sp)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "Events", fontSize = 24.sp)
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn {
-            items(fakeEvents) { event ->
-                EventItem(event) {
-                    navController.navigate("eventDetail/${event.id}")
+            if (isLoading) {
+                CircularProgressIndicator()
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(eventList) { event ->
+                        EventItem(event) {
+                            navController.navigate("eventDetail/${event.id}")
+                            Log.d("Navigation", "event.id envoyé: ${event.id}")
+                        }
+                    }
                 }
             }
         }
     }
 }
-
 
 // History Screen
 @Composable
