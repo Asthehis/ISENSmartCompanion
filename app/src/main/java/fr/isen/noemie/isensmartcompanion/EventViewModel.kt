@@ -3,7 +3,6 @@ package fr.isen.noemie.isensmartcompanion
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.isen.noemie.isensmartcompanion.Event
 import fr.isen.noemie.isensmartcompanion.api.EventApiService
 import fr.isen.noemie.isensmartcompanion.repository.EventRepository
 import kotlinx.coroutines.flow.MutableStateFlow

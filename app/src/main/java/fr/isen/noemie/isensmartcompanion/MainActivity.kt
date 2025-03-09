@@ -32,21 +32,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.*
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import fr.isen.noemie.isensmartcompanion.EventDetailActivity
-import fr.isen.noemie.isensmartcompanion.api.EventApiService
-import fr.isen.noemie.isensmartcompanion.repository.EventRepository
 import fr.isen.noemie.isensmartcompanion.ui.theme.ISENSmartCompanionTheme
-import fr.isen.noemie.isensmartcompanion.Event
-import fr.isen.noemie.isensmartcompanion.EventItem
-import fr.isen.noemie.isensmartcompanion.EventListActivity
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import fr.isen.noemie.isensmartcompanion.EventViewModel
-import androidx.compose.runtime.collectAsState
-import kotlin.text.toIntOrNull
 
 
 // Define Tab Items
@@ -135,7 +124,7 @@ class MainActivity : ComponentActivity() {
 // Reusable Tab View
 @Composable
 fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
-    var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
 
     NavigationBar {
         tabBarItems.forEachIndexed { index, tabBarItem ->
