@@ -11,8 +11,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import fr.isen.noemie.isensmartcompanion.Event
-import fr.isen.noemie.isensmartcompanion.EventItem
 import android.util.Log
 
 class EventDetailActivity : ComponentActivity() {

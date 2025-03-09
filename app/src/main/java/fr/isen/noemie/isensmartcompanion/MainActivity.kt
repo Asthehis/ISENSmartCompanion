@@ -1,5 +1,7 @@
 package fr.isen.noemie.isensmartcompanion
 
+import GeminiAIService
+import android.app.Application
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Home
@@ -32,21 +35,16 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.*
 import androidx.compose.foundation.lazy.items
+import fr.isen.noemie.isensmartcompanion.ui.theme.ISENSmartCompanionTheme
+import androidx.activity.viewModels
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import fr.isen.noemie.isensmartcompanion.EventDetailActivity
-import fr.isen.noemie.isensmartcompanion.api.EventApiService
-import fr.isen.noemie.isensmartcompanion.repository.EventRepository
-import fr.isen.noemie.isensmartcompanion.ui.theme.ISENSmartCompanionTheme
-import fr.isen.noemie.isensmartcompanion.Event
-import fr.isen.noemie.isensmartcompanion.EventItem
-import fr.isen.noemie.isensmartcompanion.EventListActivity
-import androidx.activity.viewModels
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import fr.isen.noemie.isensmartcompanion.EventViewModel
-import androidx.compose.runtime.collectAsState
-import kotlin.text.toIntOrNull
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 
 // Define Tab Items
@@ -135,7 +133,7 @@ class MainActivity : ComponentActivity() {
 // Reusable Tab View
 @Composable
 fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
-    var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
 
     NavigationBar {
         tabBarItems.forEachIndexed { index, tabBarItem ->
@@ -160,49 +158,81 @@ fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
 // Home Screen
 @Composable
 fun SmartCompanionUI(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
+    val context = LocalContext.current.applicationContext as Application
+    val viewModel: MessageViewModel = viewModel(factory = MessageViewModelFactory(context))
     var userInput by remember { mutableStateOf("") }
-    var previousInput by remember { mutableStateOf("") }
-    var response by remember { mutableStateOf("Hello! How can I assist you?") }
+    val messages by viewModel.messages.collectAsState(initial = emptyList())
+    val aiService = remember { GeminiAIService(context) }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text= "ISEN", fontSize = 96.sp, color = colorResource(id = R.color.red), fontFamily = oswaldFontFamily)
+        Text(text = "ISEN", fontSize = 96.sp, color = colorResource(id = R.color.red))
         Text(text = "Smart Companion", fontSize = 16.sp)
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        OutlinedTextField(
-            value = userInput,
-            onValueChange = { userInput = it },
-            label = { Text("Ask me anything...") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
-                response = "Previous request: $previousInput\nYour request: $userInput"
-                previousInput = userInput
-                Toast.makeText(context, "Question Submitted", Toast.LENGTH_SHORT).show()
-            },
-            modifier = Modifier.align(Alignment.End),
-            colors = ButtonDefaults.buttonColors(colorResource(id = R.color.red))
+        Card(
+            modifier = Modifier.fillMaxSize().padding(8.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Text("Send")
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp)
+            ) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    reverseLayout = true // Cette propriété inverse l'ordre des éléments affichés
+                ) {
+                    items(messages) { message ->
+                        // Réorganiser l'affichage pour que le message de l'utilisateur soit en bas et l'icône après le message de l'IA
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(text = "You: ${message.userMessage}", fontSize = 18.sp)
+                            Text(text = "AI: ${message.aiResponse}", fontSize = 18.sp)
+
+                            IconButton(onClick = {
+                                viewModel.deleteMessage(message.id)
+                            }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Delete Message")
+                            }
+                        }
+                    }
+                }
+
+
+                OutlinedTextField(
+                    value = userInput,
+                    onValueChange = { userInput = it },
+                    label = { Text("Ask me anything...") },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                    singleLine = true,
+                    trailingIcon = {
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val aiResponse = aiService.getAIResponse(userInput)
+                                    viewModel.addMessage(userInput, aiResponse) // Sauvegarde dans Room
+                                    userInput = "" // Réinitialise l'input après envoi
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(colorResource(id = R.color.red)),
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.ArrowForward,
+                                contentDescription = "Send",
+                                tint = Color.White // Si tu veux changer la couleur de l'icône
+                            )
+                        }
+                    }
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = response,
-            fontSize = 18.sp,
-            color = colorResource(id = R.color.grey)
-        )
     }
 }
 
