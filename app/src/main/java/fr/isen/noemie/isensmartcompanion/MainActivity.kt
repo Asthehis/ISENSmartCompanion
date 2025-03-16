@@ -45,6 +45,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
 
 
 // Define Tab Items
@@ -165,76 +166,102 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
     val aiService = remember { GeminiAIService(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp)
     ) {
-        Text(text = "ISEN", fontSize = 96.sp, color = colorResource(id = R.color.red))
-        Text(text = "Smart Companion", fontSize = 16.sp)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        // Column pour le contenu de la page, messages et champ de texte
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 80.dp), // Ajout d'un padding en bas pour laisser de la place pour le bouton
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp)
-            ) {
-                LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    reverseLayout = true // Cette propriété inverse l'ordre des éléments affichés
-                ) {
-                    items(messages) { message ->
-                        // Réorganiser l'affichage pour que le message de l'utilisateur soit en bas et l'icône après le message de l'IA
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(text = "You: ${message.userMessage}", fontSize = 18.sp)
-                            Text(text = "AI: ${message.aiResponse}", fontSize = 18.sp)
+            Text(text = "ISEN", fontSize = 96.sp, color = colorResource(id = R.color.red))
+            Text(text = "Smart Companion", fontSize = 16.sp)
 
-                            IconButton(onClick = {
-                                viewModel.deleteMessage(message.id)
-                            }) {
-                                Icon(Icons.Filled.Delete, contentDescription = "Delete Message")
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    // LazyColumn pour afficher les messages, avec le plus récent en bas
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)  // Le LazyColumn prendra tout l'espace disponible avant le bouton
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        reverseLayout = true // Affiche les messages du plus récent au plus ancien
+                    ) {
+                        items(messages) { message ->
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(text = "You: ${message.userMessage}", fontSize = 18.sp)
+                                Text(text = "AI: ${message.aiResponse}", fontSize = 18.sp)
                             }
                         }
                     }
-                }
 
-
-                OutlinedTextField(
-                    value = userInput,
-                    onValueChange = { userInput = it },
-                    label = { Text("Ask me anything...") },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                    singleLine = true,
-                    trailingIcon = {
-                        Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    val aiResponse = aiService.getAIResponse(userInput)
-                                    viewModel.addMessage(userInput, aiResponse) // Sauvegarde dans Room
-                                    userInput = "" // Réinitialise l'input après envoi
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(colorResource(id = R.color.red)),
-                            contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.ArrowForward,
-                                contentDescription = "Send",
-                                tint = Color.White // Si tu veux changer la couleur de l'icône
-                            )
+                    // OutlinedTextField pour l'input utilisateur et bouton d'envoi
+                    OutlinedTextField(
+                        value = userInput,
+                        onValueChange = { userInput = it },
+                        label = { Text("Ask me anything...") },
+                        modifier = Modifier
+                            .fillMaxWidth() // Prendre toute la largeur disponible
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        singleLine = true,
+                        trailingIcon = {
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        val aiResponse = aiService.getAIResponse(userInput)
+                                        viewModel.addMessage(userInput, aiResponse) // Sauvegarde dans Room
+                                        userInput = "" // Réinitialise l'input après envoi
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(colorResource(id = R.color.red)),
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowForward,
+                                    contentDescription = "Send",
+                                    tint = Color.White // Si tu veux changer la couleur de l'icône
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
+        }
+
+        // Bouton pour supprimer tous les messages (en bas)
+        IconButton(
+            onClick = {
+                viewModel.deleteAllMessages()
+            },
+            modifier = Modifier
+                .padding(16.dp) // Espacement autour du bouton
+                .align(Alignment.BottomCenter) // Placer le bouton en bas au centre
+        ) {
+            Icon(
+                Icons.Filled.Delete,
+                contentDescription = "Delete All History",
+                tint = Color.Gray // Change la couleur si tu veux
+            )
         }
     }
 }
+
 
 // Event Screen
 @Composable
