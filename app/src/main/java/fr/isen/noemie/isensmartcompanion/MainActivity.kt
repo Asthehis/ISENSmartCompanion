@@ -4,7 +4,6 @@ import GeminiAIService
 import android.app.Application
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -37,15 +36,12 @@ import androidx.navigation.compose.*
 import androidx.compose.foundation.lazy.items
 import fr.isen.noemie.isensmartcompanion.ui.theme.ISENSmartCompanionTheme
 import androidx.activity.viewModels
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.collectAsState
 
 
 // Define Tab Items
@@ -65,6 +61,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        createNotificationChannel(this)
         enableEdgeToEdge()
         setContent {
             ISENSmartCompanionTheme {
@@ -100,7 +97,8 @@ class MainActivity : ComponentActivity() {
                     NavHost(navController, startDestination = homeTab.title, Modifier.padding(innerPadding)) {
                         composable(homeTab.title) { SmartCompanionUI() }
                         composable(eventTab.title) { EventView(eventList, isLoading, navController) }
-                        composable(historyTab.title) { HistoryView() }
+                        composable(historyTab.title) { val messageViewModel: MessageViewModel = viewModel() // Récupère le ViewModel pour l'historique
+                            HistoryScreen(viewModel = messageViewModel) }
                         composable("eventDetail/{eventId}") { backStackEntry ->
                             Log.d("EventDetail", "Raw eventId argument: ${backStackEntry.arguments?.getString("eventId")}")
                             val eventId = backStackEntry.arguments?.getString("eventId")
@@ -158,7 +156,7 @@ fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
 
 // Home Screen
 @Composable
-fun SmartCompanionUI(modifier: Modifier = Modifier) {
+fun SmartCompanionUI() {
     val context = LocalContext.current.applicationContext as Application
     val viewModel: MessageViewModel = viewModel(factory = MessageViewModelFactory(context))
     var userInput by remember { mutableStateOf("") }
@@ -178,7 +176,7 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
                 .padding(bottom = 80.dp), // Ajout d'un padding en bas pour laisser de la place pour le bouton
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "ISEN", fontSize = 96.sp, color = colorResource(id = R.color.red))
+            Text(text = "ISEN", fontSize = 96.sp, color = colorResource(id = R.color.red), fontFamily = oswaldFontFamily)
             Text(text = "Smart Companion", fontSize = 16.sp)
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -205,6 +203,7 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
                         items(messages) { message ->
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(text = "You: ${message.userMessage}", fontSize = 18.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(text = "AI: ${message.aiResponse}", fontSize = 18.sp)
                             }
                         }
@@ -243,22 +242,20 @@ fun SmartCompanionUI(modifier: Modifier = Modifier) {
                 }
             }
         }
-
-        // Bouton pour supprimer tous les messages (en bas)
-        IconButton(
-            onClick = {
-                viewModel.deleteAllMessages()
-            },
+        // Texte cliquable pour effacer les messages visibles
+        Text(
+            text = "Clear chat",
+            color = Color.Black,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier
-                .padding(16.dp) // Espacement autour du bouton
-                .align(Alignment.BottomCenter) // Placer le bouton en bas au centre
-        ) {
-            Icon(
-                Icons.Filled.Delete,
-                contentDescription = "Delete All History",
-                tint = Color.Gray // Change la couleur si tu veux
-            )
-        }
+                .padding(16.dp)
+                .align(Alignment.BottomCenter)
+                .clickable {
+                    // Effacer les messages visibles dans l'UI
+                    viewModel.clearMessages()
+                }
+        )
     }
 }
 
@@ -273,7 +270,7 @@ fun EventView(eventList: List<Event>, isLoading: Boolean, navController: NavCont
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Events", fontSize = 24.sp)
+            Text(text = "Events", fontSize = 36.sp)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -296,16 +293,6 @@ fun EventView(eventList: List<Event>, isLoading: Boolean, navController: NavCont
     }
 }
 
-// History Screen
-@Composable
-fun HistoryView() {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "History", fontSize = 24.sp)
-    }
-}
 
 @Preview(showBackground = true)
 @Composable

@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.generativeai)
     //implementation("com.google.accompanist:accompanist-scrollbar:0.32.0")
     implementation("androidx.room:room-runtime:2.6.1")
+    implementation(libs.protolite.well.known.types)
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
