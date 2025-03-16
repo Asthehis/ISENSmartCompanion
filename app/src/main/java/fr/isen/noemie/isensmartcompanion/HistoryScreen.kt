@@ -35,7 +35,7 @@ import java.util.*
 
 @Composable
 fun HistoryScreen(viewModel: MessageViewModel) {
-    val messages by viewModel.messages.collectAsState(initial = emptyList())
+    val messages by viewModel.messagesInView.collectAsState(initial = emptyList())
 
     Column(
         modifier = Modifier

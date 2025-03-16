@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [MessageEntity::class], version = 1, exportSchema = false)
+@Database(entities = [MessageEntity::class], version = 2, exportSchema = false)
 abstract class MessageDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao
 
@@ -19,7 +19,9 @@ abstract class MessageDatabase : RoomDatabase() {
                     context.applicationContext,
                     MessageDatabase::class.java,
                     "message_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration() // Cette option permet de supprimer la base de données existante en cas de changement de schéma
+                    .build()
                 INSTANCE = instance
                 instance
             }

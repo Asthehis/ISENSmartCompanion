@@ -9,5 +9,6 @@ data class MessageEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(), // Génère un ID unique
     val userMessage: String,
     val aiResponse: String,
-    val timestamp: Long = System.currentTimeMillis() // Ajoute la date
+    val timestamp: Long = System.currentTimeMillis(), // Ajoute la date
+    val isCleared: Boolean = false
 )

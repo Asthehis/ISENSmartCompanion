@@ -148,7 +148,10 @@ fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
                         contentDescription = tabBarItem.title
                     )
                 },
-                label = { Text(tabBarItem.title) }
+                label = { Text(tabBarItem.title) },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = colorResource(id = R.color.red)
+            )
             )
         }
     }
@@ -160,7 +163,7 @@ fun SmartCompanionUI() {
     val context = LocalContext.current.applicationContext as Application
     val viewModel: MessageViewModel = viewModel(factory = MessageViewModelFactory(context))
     var userInput by remember { mutableStateOf("") }
-    val messages by viewModel.messages.collectAsState(initial = emptyList())
+    val messages by viewModel.messagesInView.collectAsState(initial = emptyList()) // Utiliser collectAsState avec un Flow
     val aiService = remember { GeminiAIService(context) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -169,11 +172,10 @@ fun SmartCompanionUI() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Column pour le contenu de la page, messages et champ de texte
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 80.dp), // Ajout d'un padding en bas pour laisser de la place pour le bouton
+                .padding(bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(text = "ISEN", fontSize = 96.sp, color = colorResource(id = R.color.red), fontFamily = oswaldFontFamily)
@@ -192,13 +194,12 @@ fun SmartCompanionUI() {
                         .fillMaxSize()
                         .padding(16.dp)
                 ) {
-                    // LazyColumn pour afficher les messages, avec le plus récent en bas
                     LazyColumn(
                         modifier = Modifier
-                            .weight(1f)  // Le LazyColumn prendra tout l'espace disponible avant le bouton
+                            .weight(1f)
                             .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        reverseLayout = true // Affiche les messages du plus récent au plus ancien
+                        reverseLayout = true
                     ) {
                         items(messages) { message ->
                             Column(modifier = Modifier.fillMaxWidth()) {
@@ -209,13 +210,12 @@ fun SmartCompanionUI() {
                         }
                     }
 
-                    // OutlinedTextField pour l'input utilisateur et bouton d'envoi
                     OutlinedTextField(
                         value = userInput,
                         onValueChange = { userInput = it },
                         label = { Text("Ask me anything...") },
                         modifier = Modifier
-                            .fillMaxWidth() // Prendre toute la largeur disponible
+                            .fillMaxWidth()
                             .padding(horizontal = 4.dp, vertical = 4.dp),
                         singleLine = true,
                         trailingIcon = {
@@ -234,7 +234,7 @@ fun SmartCompanionUI() {
                                 Icon(
                                     imageVector = Icons.Filled.ArrowForward,
                                     contentDescription = "Send",
-                                    tint = Color.White // Si tu veux changer la couleur de l'icône
+                                    tint = Color.White
                                 )
                             }
                         }
@@ -242,23 +242,25 @@ fun SmartCompanionUI() {
                 }
             }
         }
-        // Texte cliquable pour effacer les messages visibles
-        Text(
-            text = "Clear chat",
-            color = Color.Black,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(16.dp)
-                .align(Alignment.BottomCenter)
-                .clickable {
-                    // Effacer les messages visibles dans l'UI
-                    viewModel.clearMessages()
-                }
-        )
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Text(
+                text = "Clear chat",
+                color = Color.Black,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .padding(16.dp).padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clickable {
+                        viewModel.clearMessages() // Efface uniquement l'UI
+                    }
+            )
+        }
     }
 }
-
 
 // Event Screen
 @Composable
